@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>ESP32 IoT Dashboard</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: white;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 20px;
+      background: #111827;
+      border-bottom: 1px solid #334155;
+    }
+
+    header h1 {
+      font-size: 24px;
+    }
+
+    header p {
+      color: #94a3b8;
+      margin-top: 5px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 25px;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      padding: 15px 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #22c55e;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 25px;
+    }
+
+    .card-title {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .value {
+      font-size: 42px;
+      font-weight: bold;
+    }
+
+    .unit {
+      font-size: 20px;
+      color: #94a3b8;
+    }
+
+    .temperature {
+      color: #fb923c;
+    }
+
+    .humidity {
+      color: #38bdf8;
+    }
+
+    .led {
+      color: #facc15;
+    }
+
+    .control {
+      margin-top: 25px;
+    }
+
+    .control h2 {
+      margin-bottom: 15px;
+    }
+
+    .led-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .switch {
+      position: relative;
+      width: 60px;
+      height: 32px;
+    }
+
+    .switch input {
+      display: none;
+    }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #475569;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .slider:before {
+      content: "";
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      left: 4px;
+      top: 4px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    input:checked + .slider {
+      background: #22c55e;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(28px);
+    }
+
+    .charts {
+      margin-top: 25px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .chart {
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+    }
+
+    footer {
+      text-align: center;
+      color: #64748b;
+      padding: 30px;
+    }
+
+    @media (max-width: 700px) {
+      .charts {
+        grid-template-columns: 1fr;
+      }
+
+      .status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>⚡ ESP32 IoT Dashboard</h1>
+  <p>Temperature, Humidity & LED Control</p>
+</header>
+
+<div class="container">
+
+  <div class="status-bar">
+
+    <div class="status">
+      <div class="status-dot"></div>
+      <span>ESP32 ONLINE</span>
+    </div>
+
+    <div>
+      Last update: <span id="lastUpdate">Just now</span>
+    </div>
+
+  </div>
+
+  <div class="cards">
+
+    <div class="card">
+      <div class="card-title">🌡️ TEMPERATURE</div>
+
+      <div>
+        <span class="value temperature" id="temperature">--</span>
+        <span class="unit">°C</span>
+      </div>
+
+    </div>
+
+
+    <div class="card">
+
+      <div class="card-title">💧 HUMIDITY</div>
+
+      <div>
+        <span class="value humidity" id="humidity">--</span>
+        <span class="unit">%</span>
+      </div>
+
+    </div>
+
+
+    <div class="card">
+
+      <div class="card-title">💡 LED STATUS</div>
+
+      <div>
+        <span class="value led" id="ledStatus">OFF</span>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="card control">
+
+    <h2>💡 LED CONTROL</h2>
+
+    <div class="led-control">
+
+      <div>
+        <strong>ESP32 LED</strong>
+        <p style="color:#94a3b8;margin-top:5px;">
+          Control LED remotely
+        </p>
+      </div>
+
+      <label class="switch">
+
+        <input
+          type="checkbox"
+          id="ledSwitch"
+          onchange="toggleLED()"
+        >
+
+        <span class="slider"></span>
+
+      </label>
+
+    </div>
+
+  </div>
+
+
+  <div class="charts">
+
+    <div class="chart">
+      📈 Temperature Chart
+    </div>
+
+    <div class="chart">
+      📊 Humidity Chart
+    </div>
+
+  </div>
+
+</div>
+
+
+<footer>
+
+  ESP32 Smart IoT System<br>
+  GitHub Dashboard
+
+</footer>
+
+
+<script>
+
+  // Demo values for now.
+  // We will replace these with Blynk data later.
+
+  let temperature = 28.4;
+  let humidity = 64;
+  let ledState = false;
+
+
+  function updateDashboard() {
+
+    document.getElementById("temperature").innerText =
+      temperature.toFixed(1);
+
+    document.getElementById("humidity").innerText =
+      humidity.toFixed(0);
+
+    document.getElementById("ledStatus").innerText =
+      ledState ? "ON" : "OFF";
+
+    document.getElementById("ledSwitch").checked =
+      ledState;
+
+    document.getElementById("lastUpdate").innerText =
+      new Date().toLocaleTimeString();
+
+  }
+
+
+  function toggleLED() {
+
+    ledState =
+      document.getElementById("ledSwitch").checked;
+
+    document.getElementById("ledStatus").innerText =
+      ledState ? "ON" : "OFF";
+
+    console.log(
+      "LED:",
+      ledState ? "ON" : "OFF"
+    );
+
+    /*
+      Blynk connection will be added here.
+
+      Later:
+
+      LED ON  → Blynk Virtual Pin
+      LED OFF → Blynk Virtual Pin
+    */
+  }
+
+
+  updateDashboard();
+
+</script>
+
+</body>
+</html>
